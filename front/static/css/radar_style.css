@@ -1,0 +1,135 @@
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0a0e14; color: #00e5ff; font-family: 'Share Tech Mono', monospace; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
+
+/* HEADER */
+.hud-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 20px; border-bottom: 1px solid #00e5ff22; flex-shrink: 0;
+}
+.hud-title { font-family: 'Orbitron', monospace; font-size: 14px; letter-spacing: 4px; color: #00e5ff; }
+.hud-meta { display: flex; gap: 24px; font-size: 11px; color: #00e5ff66; letter-spacing: 1px; }
+.hud-meta span { color: #f0c040; }
+#clockDisplay { font-size: 12px; color: #00e5ffaa; letter-spacing: 2px; }
+
+/* BODY */
+.hud-body { display: flex; flex: 1; overflow: hidden; }
+
+/* RADAR */
+.radar-panel { position: relative; flex: 1; overflow: hidden; }
+canvas { display: block; width: 100%; height: 100%; }
+
+/* SCAN LINE */
+.scan-line {
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, #00e5ff55, transparent);
+  animation: scandown 4s linear infinite; pointer-events: none; z-index: 5;
+}
+@keyframes scandown { 0% { top: 0; } 100% { top: 100%; } }
+
+/* SIDEBAR */
+.sidebar {
+  width: 240px; border-left: 1px solid #00e5ff1a;
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.sidebar-header {
+  padding: 10px 14px; font-size: 10px; letter-spacing: 2px;
+  color: #00e5ff44; border-bottom: 1px solid #00e5ff1a; flex-shrink: 0;
+}
+.sidebar-list { flex: 1; overflow-y: auto; padding: 8px; }
+.sidebar-list::-webkit-scrollbar { width: 3px; }
+.sidebar-list::-webkit-scrollbar-thumb { background: #00e5ff33; }
+
+/* PLANE CARD */
+.plane-card {
+  background: #0d1520; border: 1px solid #00e5ff22; border-radius: 4px;
+  padding: 9px 11px; margin-bottom: 6px; cursor: pointer;
+  transition: border-color 0.15s, background 0.15s; position: relative;
+}
+.plane-card:hover { border-color: #f0c04066; }
+.plane-card.active { border-color: #f0c040; background: #1a150a; }
+.plane-callsign { font-family: 'Orbitron', monospace; font-size: 13px; font-weight: 700; color: #f0c040; letter-spacing: 2px; }
+.plane-airline { font-size: 10px; color: #00e5ffaa; margin-top: 2px; letter-spacing: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.plane-row { display: flex; justify-content: space-between; margin-top: 5px; }
+.plane-speed { font-size: 10px; color: #44ff88; }
+.plane-alt { font-size: 10px; color: #ffffff55; }
+.plane-dist { font-size: 10px; color: #00e5ff88; }
+.dot { position: absolute; top: 9px; right: 9px; width: 5px; height: 5px; border-radius: 50%; background: #44ff88; animation: pulse 1.6s ease-in-out infinite; }
+@keyframes pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.3; transform:scale(0.5); } }
+
+/* FOOTER */
+.hud-footer {
+  display: flex; align-items: center; gap: 20px;
+  padding: 8px 20px; border-top: 1px solid #00e5ff1a; font-size: 10px;
+  color: #00e5ff44; letter-spacing: 1px; flex-shrink: 0;
+}
+.hud-footer span { color: #f0c040; }
+#statusMsg { color: #ff444499; }
+.btn {
+  margin-left: auto; font-family: 'Share Tech Mono', monospace; font-size: 10px;
+  background: transparent; border: 1px solid #00e5ff33; color: #00e5ffaa;
+  padding: 4px 14px; border-radius: 2px; cursor: pointer; letter-spacing: 1px; transition: all 0.15s;
+}
+.btn:hover { border-color: #00e5ff; color: #00e5ff; }
+.blink { animation: blink 1.2s step-end infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+
+/* TOOLTIP en mapa */
+#tooltip {
+  position: absolute; background: #0d1520ee; border: 1px solid #f0c04066;
+  border-radius: 4px; padding: 8px 12px; font-size: 11px; pointer-events: none;
+  display: none; z-index: 20; min-width: 160px;
+}
+#tooltip .t-cs { font-family: 'Orbitron', monospace; font-size: 13px; color: #f0c040; font-weight: 700; }
+#tooltip .t-al { color: #00e5ffaa; font-size: 10px; margin-top: 2px; }
+#tooltip .t-sp { color: #44ff88; font-size: 10px; margin-top: 4px; }
+#tooltip .t-alt { color: #ffffff66; font-size: 10px; }
+
+/* MODAL PARA CONFIGURACIÓN */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.8);
+}
+.modal-content {
+  background: #0d1520;
+  border: 1px solid #f0c040;
+  border-radius: 8px;
+  margin: 15% auto;
+  padding: 20px;
+  width: 300px;
+  font-family: 'Share Tech Mono', monospace;
+}
+.modal-content input {
+  width: 100%;
+  padding: 8px;
+  margin: 10px 0;
+  background: #1a1f2a;
+  border: 1px solid #00e5ff44;
+  color: #00e5ff;
+  font-family: 'Share Tech Mono', monospace;
+}
+.modal-content button {
+  margin-top: 10px;
+  padding: 8px 16px;
+  background: #f0c040;
+  border: none;
+  color: #0a0e14;
+  cursor: pointer;
+  font-family: 'Share Tech Mono', monospace;
+  font-weight: bold;
+}
+.modal-content button:hover {
+  background: #ffd966;
+}
+.editable {
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.editable:hover {
+  color: #f0c040;
+}
