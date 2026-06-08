@@ -15,8 +15,8 @@ app = Flask(__name__)
 CORS(app)
 
 # ========== CONFIGURACIÓN ==========
-HOME_LAT = float(os.getenv("LATITUDE_HOME", 40.466555))
-HOME_LON = float(os.getenv("LONGITUDE_HOME", -3.593562))
+HOME_LAT = float(os.getenv("LATITUDE_HOME"))
+HOME_LON = float(os.getenv("LONGITUDE_HOME"))
 
 RADIO_KM = 30 
 VELOCIDAD_MINIMA_KNOTS = 150  # CAMBIADO a 0 para ver todos los aviones
