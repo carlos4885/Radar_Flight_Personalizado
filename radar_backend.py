@@ -1,6 +1,6 @@
 from math import radians, sin, cos, sqrt, atan2
 import requests
-from flask import Flask, jsonify, send_file
+from flask import Flask, jsonify, send_file, request
 from flask_cors import CORS
 import os
 from dotenv import load_dotenv
@@ -18,9 +18,9 @@ CORS(app)
 HOME_LAT = float(os.getenv("LATITUDE_HOME"))
 HOME_LON = float(os.getenv("LONGITUDE_HOME"))
 
-RADIO_KM = 30 
-VELOCIDAD_MINIMA_KNOTS = 150  # CAMBIADO a 0 para ver todos los aviones
-
+# Variables globales modificables
+RADIO_KM = 30  
+VELOCIDAD_MINIMA_KNOTS = 150
 
 # ========== DICCIONARIO LOCAL DE AEROLÍNEAS ==========
 AEROLINEAS = {
@@ -125,7 +125,7 @@ def obtener_token():
     except:
         return None
 
-def aviones_cerca_de_punto(lat_centro, lon_centro, radio_km, velocidad_min_knots=0):
+def aviones_cerca_de_punto(lat_centro, lon_centro, radio_km, velocidad_min_knots):
     delta_lat = radio_km / 111.0
     delta_lon = radio_km / (111.0 * cos(radians(lat_centro)))
 
@@ -137,7 +137,6 @@ def aviones_cerca_de_punto(lat_centro, lon_centro, radio_km, velocidad_min_knots
     }
 
     try:
-        # Obtener token y hacer petición autenticada
         token = obtener_token()
         headers = {"Authorization": f"Bearer {token}"} if token else {}
         
@@ -199,6 +198,44 @@ def get_aviones():
         }
     })
 
+@app.route("/config", methods=['GET'])
+def get_config():
+    """Devuelve la configuración actual"""
+    return jsonify({
+        "radio_km": RADIO_KM,
+        "velocidad_minima_knots": VELOCIDAD_MINIMA_KNOTS
+    })
+
+@app.route("/config/radio", methods=['POST'])
+def set_radio():
+    """Modifica el radio en km"""
+    global RADIO_KM
+    try:
+        data = request.get_json()
+        nuevo_radio = data.get('radio_km')
+        if nuevo_radio and 1 <= nuevo_radio <= 200:
+            RADIO_KM = nuevo_radio
+            return jsonify({"status": "ok", "radio_km": RADIO_KM})
+        else:
+            return jsonify({"status": "error", "message": "Radio debe estar entre 1 y 200 km"}), 400
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 400
+
+@app.route("/config/velocidad", methods=['POST'])
+def set_velocidad():
+    """Modifica la velocidad mínima en nudos"""
+    global VELOCIDAD_MINIMA_KNOTS
+    try:
+        data = request.get_json()
+        nueva_velocidad = data.get('velocidad_minima_knots')
+        if nueva_velocidad and 0 <= nueva_velocidad <= 600:
+            VELOCIDAD_MINIMA_KNOTS = nueva_velocidad
+            return jsonify({"status": "ok", "velocidad_minima_knots": VELOCIDAD_MINIMA_KNOTS})
+        else:
+            return jsonify({"status": "error", "message": "Velocidad debe estar entre 0 y 600 nudos"}), 400
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 400
+
 @app.route("/")
 def index():
     return send_file('radar_frontend.html')
@@ -207,5 +244,6 @@ def index():
 if __name__ == "__main__":
     print("\n✈️  Radar backend iniciado en http://localhost:5000")
     print("   Endpoint: http://localhost:5000/aviones")
+    print("   Endpoint: http://localhost:5000/config")
     print("   Interfaz: http://localhost:5000/\n")
     app.run(host="0.0.0.0", port=5000, debug=True)

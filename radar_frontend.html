@@ -91,12 +91,65 @@
     #tooltip .t-al { color: #00e5ffaa; font-size: 10px; margin-top: 2px; }
     #tooltip .t-sp { color: #44ff88; font-size: 10px; margin-top: 4px; }
     #tooltip .t-alt { color: #ffffff66; font-size: 10px; }
+
+
+    /* MODAL PARA CONFIGURACIÓN */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.8);
+    }
+    .modal-content {
+      background: #0d1520;
+      border: 1px solid #f0c040;
+      border-radius: 8px;
+      margin: 15% auto;
+      padding: 20px;
+      width: 300px;
+      font-family: 'Share Tech Mono', monospace;
+    }
+    .modal-content input {
+      width: 100%;
+      padding: 8px;
+      margin: 10px 0;
+      background: #1a1f2a;
+      border: 1px solid #00e5ff44;
+      color: #00e5ff;
+      font-family: 'Share Tech Mono', monospace;
+    }
+    .modal-content button {
+      margin-top: 10px;
+      padding: 8px 16px;
+      background: #f0c040;
+      border: none;
+      color: #0a0e14;
+      cursor: pointer;
+      font-family: 'Share Tech Mono', monospace;
+      font-weight: bold;
+    }
+    .modal-content button:hover {
+      background: #ffd966;
+    }
+    .editable {
+      cursor: pointer;
+      /* border-bottom: 1px dashed #f0c040; */  /* Comenta o elimina esta línea */
+      transition: all 0.2s;
+    }
+    .editable:hover {
+      color: #f0c040;
+      /* border-bottom-color: #00e5ff; */  /* Comenta o elimina esta línea */
+    }
   </style>
 </head>
 <body>
 
   <div class="hud-header">
-    <div class="hud-title">✈ AIR RADAR — MAD</div>
+    <div class="hud-title">✈ AIR RADAR — PEDRO ✈</div>
     <div class="hud-meta">
       RADIO: <span id="cfgRadio">—</span> km &nbsp;|&nbsp;
       MÍN: <span id="cfgMin">—</span> kt &nbsp;|&nbsp;
@@ -130,6 +183,19 @@
     <button class="btn" onclick="fetchData()">↺ REFRESH</button>
   </div>
 
+  <!-- MODAL PARA CONFIGURACIÓN -->
+  <div id="configModal" class="modal">
+    <div class="modal-content">
+      <h3 style="color:#f0c040; margin-bottom:15px;">✈ CONFIGURAR RADAR</h3>
+      <label for="modalRadio" style="display:block;">RADIO (km):</label>
+      <input type="number" id="modalRadio" min="1" max="200" step="5" style="display:block;">
+      <label for="modalVelocidad" style="display:block; margin-top:10px;">VELOCIDAD MÍNIMA (nudos):</label>
+      <input type="number" id="modalVelocidad" min="0" max="600" step="10" style="display:block;">
+      <button onclick="guardarConfiguracion()">GUARDAR</button>
+      <button onclick="cerrarModal()" style="background:#444; margin-left:10px;">CANCELAR</button>
+    </div>
+  </div>
+
   <script>
     // ============ CONFIG ============
     const BACKEND_URL = 'http://localhost:5000/aviones';
@@ -137,6 +203,7 @@
     // ============ STATE ============
     let planes = [], trails = {}, selectedId = null, sweepAngle = 0;
     let HOME_LAT = 40.466555, HOME_LON = -3.593562, RADIO_KM = 30;
+    let variableEditando = null;
 
     // ============ CANVAS ============
     const canvas = document.getElementById('radarCanvas');
@@ -355,8 +422,108 @@
           .map(v => String(v).padStart(2, '0')).join(':') + ' UTC';
     }
 
+    // ============ CONFIGURACIÓN MODIFICABLE ============
+    async function cargarConfiguracion() {
+      try {
+        const resp = await fetch('http://localhost:5000/config');
+        const config = await resp.json();
+        document.getElementById('cfgRadio').textContent = config.radio_km;
+        document.getElementById('cfgMin').textContent = config.velocidad_minima_knots;
+        RADIO_KM = config.radio_km;
+      } catch (err) {
+        console.error('Error cargando config:', err);
+      }
+    }
+
+    function abrirModal(tipo) {
+      variableEditando = tipo;
+      const modal = document.getElementById('configModal');
+      const radioInput = document.getElementById('modalRadio');
+      const velocidadInput = document.getElementById('modalVelocidad');
+      const modalTitle = document.querySelector('.modal-content h3');
+      const radioLabel = document.querySelector('.modal-content label:first-of-type');
+      const velocidadLabel = document.querySelector('.modal-content label:last-of-type');
+      
+      if (tipo === 'radio') {
+        // Modo RADIO
+        radioInput.value = document.getElementById('cfgRadio').textContent;
+        radioInput.style.display = 'block';
+        radioLabel.style.display = 'block';
+        velocidadInput.style.display = 'none';
+        velocidadLabel.style.display = 'none';
+        modalTitle.textContent = '✈ CONFIGURAR RADIO (km)';
+      } else {
+        // Modo VELOCIDAD
+        velocidadInput.value = document.getElementById('cfgMin').textContent;
+        radioInput.style.display = 'none';
+        radioLabel.style.display = 'none';
+        velocidadInput.style.display = 'block';
+        velocidadLabel.style.display = 'block';
+        modalTitle.textContent = '✈ CONFIGURAR VELOCIDAD MÍNIMA (nudos)';
+      }
+      modal.style.display = 'block';
+    }
+
+    function cerrarModal() {
+      document.getElementById('configModal').style.display = 'none';
+      variableEditando = null;
+    }
+
+    async function guardarConfiguracion() {
+      const url = variableEditando === 'radio' 
+        ? 'http://localhost:5000/config/radio'
+        : 'http://localhost:5000/config/velocidad';
+      
+      const valor = variableEditando === 'radio'
+        ? document.getElementById('modalRadio').value
+        : document.getElementById('modalVelocidad').value;
+      
+      const body = variableEditando === 'radio'
+        ? { radio_km: parseInt(valor) }
+        : { velocidad_minima_knots: parseInt(valor) };
+      
+      try {
+        const resp = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const data = await resp.json();
+        
+        if (resp.ok) {
+          if (variableEditando === 'radio') {
+            document.getElementById('cfgRadio').textContent = data.radio_km;
+            RADIO_KM = data.radio_km;
+          } else {
+            document.getElementById('cfgMin').textContent = data.velocidad_minima_knots;
+          }
+          await fetchData();
+          cerrarModal();
+        } else {
+          alert('Error: ' + data.message);
+        }
+      } catch (err) {
+        alert('Error al guardar: ' + err.message);
+      }
+    }
+
+    function hacerEditables() {
+      const radioSpan = document.getElementById('cfgRadio');
+      const minSpan = document.getElementById('cfgMin');
+      
+      radioSpan.classList.add('editable');
+      minSpan.classList.add('editable');
+      
+      radioSpan.onclick = () => abrirModal('radio');
+      minSpan.onclick = () => abrirModal('velocidad');
+    }
+
     // ============ FETCH ============
     async function fetchData() {
+      if (document.getElementById('cfgRadio').textContent === '—') {
+        await cargarConfiguracion();
+      }
+      
       document.getElementById('statusMsg').textContent = 'ACTUALIZANDO...';
       document.getElementById('statusMsg').style.color = '#00e5ff88';
       try {
@@ -364,7 +531,6 @@
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const data = await resp.json();
 
-        // Update config display
         if (data.config) {
           document.getElementById('cfgRadio').textContent = data.config.radio_km;
           document.getElementById('cfgMin').textContent = data.config.velocidad_minima_knots;
@@ -373,7 +539,6 @@
           RADIO_KM = data.config.radio_km;
         }
 
-        // Update trails
         (data.aviones || []).forEach(p => {
           if (!trails[p.icao24]) trails[p.icao24] = [];
           trails[p.icao24].push({ lat: p.latitud, lon: p.longitud });
@@ -395,7 +560,14 @@
     // ============ LOOP ============
     function loop() { draw(); updateClock(); requestAnimationFrame(loop); }
     loop();
-    fetchData();
+    
+    // Inicializar
+    window.addEventListener('DOMContentLoaded', () => {
+      hacerEditables();
+      cargarConfiguracion();
+      fetchData();
+    });
+    
     setInterval(fetchData, 10000);
   </script>
 </body>
