@@ -426,9 +426,15 @@
 
     // ============ CONFIGURACIÓN MODIFICABLE ============
     async function cargarConfiguracion() {
-      document.getElementById('cfgRadio').textContent = '30';
-      document.getElementById('cfgMin').textContent = '150';
-      RADIO_KM = 30;
+      try {
+        const resp = await fetch(`${BASE_URL}/config`);
+        const config = await resp.json();
+        document.getElementById('cfgRadio').textContent = config.radio_km;
+        document.getElementById('cfgMin').textContent = config.velocidad_minima_knots;
+        RADIO_KM = config.radio_km;
+      } catch (err) {
+        console.error('Error cargando config:', err);
+      }
     }
 
     function abrirModal(tipo) {
