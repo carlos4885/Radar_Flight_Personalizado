@@ -92,7 +92,6 @@
     #tooltip .t-sp { color: #44ff88; font-size: 10px; margin-top: 4px; }
     #tooltip .t-alt { color: #ffffff66; font-size: 10px; }
 
-
     /* MODAL PARA CONFIGURACIÓN */
     .modal {
       display: none;
@@ -137,12 +136,10 @@
     }
     .editable {
       cursor: pointer;
-      /* border-bottom: 1px dashed #f0c040; */  /* Comenta o elimina esta línea */
       transition: all 0.2s;
     }
     .editable:hover {
       color: #f0c040;
-      /* border-bottom-color: #00e5ff; */  /* Comenta o elimina esta línea */
     }
   </style>
 </head>
@@ -178,12 +175,11 @@
 
   <div class="hud-footer">
     ORIGEN: <span>40.47°N 3.59°W</span> &nbsp;|&nbsp;
-    BACKEND: <span>localhost:5000</span> &nbsp;|&nbsp;
+    URL CENTRAL: <span id="backendUrlDisplay">Cargando...</span> &nbsp;|&nbsp;
     ESTADO: <span id="statusMsg">CONECTANDO...</span>
     <button class="btn" onclick="fetchData()">↺ REFRESH</button>
   </div>
 
-  <!-- MODAL PARA CONFIGURACIÓN -->
   <div id="configModal" class="modal">
     <div class="modal-content">
       <h3 style="color:#f0c040; margin-bottom:15px;">✈ CONFIGURAR RADAR</h3>
@@ -197,8 +193,13 @@
   </div>
 
   <script>
-    // ============ CONFIG ============
-    const BACKEND_URL = 'http://localhost:5000/aviones';
+    // ============ BASE URL CONFIG ============
+    // ⚠️ IMPORTANTE: Reemplaza esto con tu URL real de Render cuando la crees
+    const BASE_URL = 'https://radar-flight-personalizado-1.onrender.com'; 
+    const BACKEND_URL = `${BASE_URL}/aviones`;
+
+    // Mostrar URL en el footer de forma elegante
+    document.getElementById('backendUrlDisplay').textContent = BASE_URL.replace('https://', '');
 
     // ============ STATE ============
     let planes = [], trails = {}, selectedId = null, sweepAngle = 0;
@@ -250,6 +251,7 @@
       ctx.strokeStyle = '#00e5ff1a'; ctx.lineWidth = 0.5;
       ctx.beginPath(); ctx.moveTo(cx - R, cy); ctx.lineTo(cx + R, cy); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(cx, cy - R); ctx.lineTo(cx, cy + R); ctx.stroke();
+      
       // Diagonals
       [45, 135].forEach(a => {
         const rad = a * Math.PI / 180;
@@ -261,7 +263,7 @@
 
       // Ring labels
       ctx.fillStyle = '#00e5ff33'; ctx.font = '9px Share Tech Mono'; ctx.textAlign = 'left';
-      [['30km', 1], ['22km', 0.75], ['15km', 0.5], ['7km', 0.25]].forEach(([l, f]) => {
+      [[`${RADIO_KM}km`, 1], [`${Math.round(RADIO_KM*0.75)}km`, 0.75], [`${Math.round(RADIO_KM*0.5)}km`, 0.5], [`${Math.round(RADIO_KM*0.25)}km`, 0.25]].forEach(([l, f]) => {
         ctx.fillText(l, cx + R * f + 3, cy - 3);
       });
 
@@ -424,15 +426,9 @@
 
     // ============ CONFIGURACIÓN MODIFICABLE ============
     async function cargarConfiguracion() {
-      try {
-        const resp = await fetch('http://localhost:5000/config');
-        const config = await resp.json();
-        document.getElementById('cfgRadio').textContent = config.radio_km;
-        document.getElementById('cfgMin').textContent = config.velocidad_minima_knots;
-        RADIO_KM = config.radio_km;
-      } catch (err) {
-        console.error('Error cargando config:', err);
-      }
+      document.getElementById('cfgRadio').textContent = '30';
+      document.getElementById('cfgMin').textContent = '150';
+      RADIO_KM = 30;
     }
 
     function abrirModal(tipo) {
@@ -445,7 +441,6 @@
       const velocidadLabel = document.querySelector('.modal-content label:last-of-type');
       
       if (tipo === 'radio') {
-        // Modo RADIO
         radioInput.value = document.getElementById('cfgRadio').textContent;
         radioInput.style.display = 'block';
         radioLabel.style.display = 'block';
@@ -453,7 +448,6 @@
         velocidadLabel.style.display = 'none';
         modalTitle.textContent = '✈ CONFIGURAR RADIO (km)';
       } else {
-        // Modo VELOCIDAD
         velocidadInput.value = document.getElementById('cfgMin').textContent;
         radioInput.style.display = 'none';
         radioLabel.style.display = 'none';
@@ -471,8 +465,8 @@
 
     async function guardarConfiguracion() {
       const url = variableEditando === 'radio' 
-        ? 'http://localhost:5000/config/radio'
-        : 'http://localhost:5000/config/velocidad';
+        ? `${BASE_URL}/config/radio`
+        : `${BASE_URL}/config/velocidad`;
       
       const valor = variableEditando === 'radio'
         ? document.getElementById('modalRadio').value
@@ -569,20 +563,20 @@
     });
     
     setInterval(fetchData, 10000);
+
     window.addEventListener('DOMContentLoaded', () => {
       const overlay = document.getElementById('bdOverlay');
       const bar = document.getElementById('bdBar');
       if (overlay && bar) {
-        // Arranca la animación de la barra
         requestAnimationFrame(() => { bar.style.width = '0%'; });
         setTimeout(() => { overlay.style.display = 'none'; }, 5000);
       }
-      });
+    });
   </script>
+
   <div id="bdOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:9999;font-family:'Share Tech Mono',monospace;">
     <div style="border:1px solid #f0c040;background:#0a0e14;padding:60px 80px;text-align:center;max-width:92vw;width:92vw;height:90vh;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;">
       
-      <!-- Esquinas decorativas -->
       <div style="position:absolute;top:-1px;left:-1px;width:24px;height:24px;border-top:2px solid #f0c040;border-left:2px solid #f0c040;"></div>
       <div style="position:absolute;top:-1px;right:-1px;width:24px;height:24px;border-top:2px solid #f0c040;border-right:2px solid #f0c040;"></div>
       <div style="position:absolute;bottom:-1px;left:-1px;width:24px;height:24px;border-bottom:2px solid #f0c040;border-left:2px solid #f0c040;"></div>
