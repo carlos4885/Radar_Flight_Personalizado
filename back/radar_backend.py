@@ -228,7 +228,9 @@ def set_velocidad():
     try:
         data = request.get_json()
         nueva_velocidad = data.get('velocidad_minima_knots')
-        if nueva_velocidad and 0 <= nueva_velocidad <= 600:
+        
+        # CORRECCIÓN: Comprobamos que no sea None para poder aceptar el valor 0
+        if nueva_velocidad is not None and 0 <= nueva_velocidad <= 600:
             VELOCIDAD_MINIMA_KNOTS = nueva_velocidad
             return jsonify({"status": "ok", "velocidad_minima_knots": VELOCIDAD_MINIMA_KNOTS})
         else:
@@ -238,8 +240,9 @@ def set_velocidad():
 
 @app.route("/")
 def index():
-    """Sirve el frontend desde la carpeta frontend/"""
-    return send_file('../front/radar_frontend.html')
+    """Sirve el frontend index.html desde la raíz correcta del proyecto"""
+    # CORRECCIÓN: Apuntamos al archivo index.html que está en la raíz del repositorio
+    return send_file('index.html')
 
 # ========== ARRANCAR ==========
 if __name__ == "__main__":
