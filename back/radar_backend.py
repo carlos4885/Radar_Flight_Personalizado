@@ -239,7 +239,7 @@ def set_velocidad():
 @app.route("/")
 def index():
     """Sirve el frontend desde la carpeta frontend/"""
-    return send_file('../frontend/radar_frontend.html')
+    return send_file('../front/radar_frontend.html')
 
 # ========== ARRANCAR ==========
 if __name__ == "__main__":
