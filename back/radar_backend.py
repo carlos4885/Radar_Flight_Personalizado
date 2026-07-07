@@ -11,7 +11,16 @@ CLIENT_ID = os.getenv("Client_ID_Open_Sky")
 CLIENT_SECRET = os.getenv("API_KEY_Open_Sky")
 
 api_key = os.getenv("MI_API_KEY")
-app = Flask(__name__)
+
+# Rutas absolutas basadas en la ubicación de ESTE archivo, no en el directorio
+# desde el que se ejecute "python radar_backend.py". Esto es lo que fallaba:
+# las rutas relativas ('../front/...') dependían del cwd y se rompían según
+# desde dónde lanzaras el script.
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+FRONT_DIR = os.path.join(BASE_DIR, '..', 'front')
+STATIC_DIR = os.path.join(FRONT_DIR, 'static')
+
+app = Flask(__name__, static_folder=STATIC_DIR, static_url_path='/static')
 CORS(app)
 
 # ========== CONFIGURACIÓN ==========
@@ -139,7 +148,7 @@ def aviones_cerca_de_punto(lat_centro, lon_centro, radio_km, velocidad_min_knots
     try:
         token = obtener_token()
         headers = {"Authorization": f"Bearer {token}"} if token else {}
-        
+
         resp = requests.get(
             "https://opensky-network.org/api/states/all", 
             params=params, 
@@ -228,9 +237,7 @@ def set_velocidad():
     try:
         data = request.get_json()
         nueva_velocidad = data.get('velocidad_minima_knots')
-        
-        # CORRECCIÓN: Comprobamos con 'is not None' para que acepte el número 0 perfectamente
-        if nueva_velocidad is not None and 0 <= nueva_velocidad <= 600:
+        if nueva_velocidad and 0 <= nueva_velocidad <= 600:
             VELOCIDAD_MINIMA_KNOTS = nueva_velocidad
             return jsonify({"status": "ok", "velocidad_minima_knots": VELOCIDAD_MINIMA_KNOTS})
         else:
@@ -240,14 +247,19 @@ def set_velocidad():
 
 @app.route("/")
 def index():
-    """Sirve el frontend saliendo de la carpeta back hacia la raíz del proyecto"""
-    # CORRECCIÓN: Al estar ejecutándose en /src/back/, con '../index.html' sube a /src/ donde está el archivo real
-    return send_file('../index.html')
+    """Sirve el frontend desde la carpeta front/"""
+    return send_file(os.path.join(FRONT_DIR, 'index.html'))
 
 # ========== ARRANCAR ==========
 if __name__ == "__main__":
-    print("\n✈️  Radar backend iniciado en http://localhost:5000")
-    print("   Endpoint: http://localhost:5000/aviones")
-    print("   Endpoint: http://localhost:5000/config")
-    print("   Interfaz: http://localhost:5000/\n")
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    # Lee el puerto que te asigna Render, si no existe usa el 5000 (local)
+    puerto = int(os.environ.get("PORT", 5000))
+    
+    print(f"\n✈️  Radar backend iniciado en el puerto {puerto}")
+    print(f"   Endpoint: http://localhost:{puerto}/aviones")
+    print(f"   Endpoint: http://localhost:{puerto}/config")
+    print(f"   Interfaz: http://localhost:{puerto}/\n")
+    
+    # En producción desactivamos el debug por seguridad y rendimiento
+    es_produccion = os.environ.get("PORT") is not None
+    app.run(host="0.0.0.0", port=puerto, debug=not es_produccion)
